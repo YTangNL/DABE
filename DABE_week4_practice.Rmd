@@ -34,9 +34,10 @@ scab$Col <- as.factor(scab$Col)
 
 # One-way ANOVA with blocking and nested treatment structure (multi-stratum)
 scab.msaov <- aov(Scab ~ Sulphur/Timing + Error(Plot/Row/Col), data=scab)
+# scab.msaov <- aov(Scab ~ Sulphur/Timing + Error(Row/Col), data=scab)
 summary(scab.msaov)
 
-# Print effects for Type and Fungicide nested witin Type
+# Print effects for Sulphur and Timing nested witin Sulphur
 model.tables(scab.msaov, type="means")
 
 # Print effects for single treatment factor
