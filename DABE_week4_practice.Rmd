@@ -1,0 +1,128 @@
+---
+title: "Extracting Information about Treatments"
+author: "TANG"
+date: "2024-02-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Extracting Information about Treatments
+
+# Control / Nesting (Exercise 8.5)
+Re-analyse the data of Exercise 6.3 using new factors (and information supplied
+in file scab.dat) to answer the following questions: Does the addition of sulphur
+affect the level of scab? Does either of the rate or timing of application affect the
+level of scab? Do these two factors act independently? (We re-visit these data in
+Exercise 11.4.)
+
+## Set up
+```{r}
+# Read data & assign factors
+scab <- read.table('scab.dat', sep="", header=TRUE)
+head(scab)
+summary(scab)
+```
+Calculation of Sulphur Parental Effects, and Nested Sulphur.Time Effects
+```{r}
+# Convert Block and Plot to factors
+scab$Plot <- as.factor(scab$Plot)
+scab$Row <- as.factor(scab$Row)
+scab$Col <- as.factor(scab$Col)
+
+# One-way ANOVA with blocking and nested treatment structure (multi-stratum)
+scab.msaov <- aov(Scab ~ Sulphur/Timing + Error(Plot/Row/Col), data=scab)
+summary(scab.msaov)
+
+# Print effects for Type and Fungicide nested witin Type
+model.tables(scab.msaov, type="means")
+
+# Print effects for single treatment factor
+scab.msaov2 <- aov(Scab ~ Sulphur + Error(Row/Col), data=scab)
+model.tables(scab.msaov2, type="effects")
+```
+
+
+# Polynomial contrasts (Exercise 8.8)
+Consider the data from the calcium pot trial of Example 4.1 (Table 4.1 and file
+calcium.dat). In this trial, the treatments A, B, C and D were concentrations of
+calcium in the soil, measured as relative concentrations of 1, 5, 10 and 20, respectively.
+
+Re-analyse these data using polynomial contrasts. Which low-order polynomial
+provides the best fit to these data?
+
+## Set up
+```{r}
+# load external packages - available from CRAN
+library(ggplot2)
+
+# Read data & assign factors
+calcium <- read.table('calcium.dat', sep="", header=TRUE)
+head(calcium)
+summary(calcium)
+
+# Plot data
+qplot(data=calcium, y=Length, x=Calcium)
+
+# define vCalcium as a variate of concentrations
+calcium$vCalcium <- rep(0,length(calcium$Calcium))
+calcium$vCalcium[calcium$Calcium=="A"] <- 1
+calcium$vCalcium[calcium$Calcium=="B"] <- 5
+calcium$vCalcium[calcium$Calcium=="C"] <- 10
+calcium$vCalcium[calcium$Calcium=="D"] <- 20
+```
+## linear regression
+```{r}
+# Baseline ANOVA
+calcium.aov <- lm(Length ~ vCalcium, data=calcium)
+anova(calcium.aov)
+summary(calcium.aov)
+
+# Get coefficients
+coef <- coef(calcium.aov)
+coef
+
+# Calculate predictions from quadratic polynomial
+c <- c(1:20)
+fit <- coef[1] + coef[2]*c 
+
+# Plot predictions with data and fitted means
+# Set up basic plot using model object
+plot.obs <- ggplot(data=calcium, aes(y=Length, x=vCalcium) ) 
+# Plot observations and fitted line
+plot.obs + geom_point() + 
+  geom_point(aes(y=fitted(calcium.aov)),colour="blue",size=2,shape=2) +
+  geom_line(aes(y=fit,x=c),colour = "red") +
+  ggtitle("Observed data with predicted means and linear")
+```
+
+## Polynomial contrasts
+```{r}
+# To get coefficients with respect to un-transformed variable, refit quadratic 
+calcium2.aov <- lm(Length ~ 1 + vCalcium + I(vCalcium^2), data=calcium)
+anova(calcium2.aov)
+summary(calcium2.aov)
+
+# Get coefficients
+coef2 <- coef(calcium2.aov)
+coef2
+
+# Calculate predictions from quadratic polynomial
+c <- c(1:20)
+fit2 <- coef2[1] + coef2[2]*c + coef2[3]*c*c
+
+# Plot predictions with data and fitted means
+# Set up basic plot using model object
+plot.obs <- ggplot(data=calcium, aes(y=Length, x=vCalcium) ) 
+# Plot observations and fitted line
+plot.obs + geom_point() + 
+  geom_point(aes(y=fitted(calcium.aov)),colour="blue",size=2,shape=2) +
+  geom_line(aes(y=fit2,x=c),colour ="darkgreen") +
+  ggtitle("Observed data with predicted means and quadratic polynomial")
+```
+
+# End of file
+
+
